@@ -29,22 +29,41 @@ import seaborn as sns
 
 # create dataframe
 data = pd.read_csv("heart_disease_uci.csv")
-print(data.info())
+# print(data.info())
 
 # print any missing values
-print(data.isnull().sum())
+# print(data.isnull().sum())
 
 # statistical analysis of the data
-print(data.describe())
+# print(data.describe())
 
-data.drop(columns=["id", "num", "dataset"])
-numerical_cols = ["age", "trestbps", "chol", "thalch", "oldpeak", "ca"]
-categorical_cols = ["sex", "cp", "fbs", "restecg", "exang", "slope", "thal"]
+def preprocess_data(df):
+    # target variable
+    df["num"] = np.where(df['num'] > 0, 1, 0)
+    df.drop(columns=["id", "dataset"], inplace=True)
+    numerical_cols = ["age", "trestbps", "chol", "thalch", "oldpeak", "ca"]
+    categorical_cols = ["sex", "cp", "fbs", "restecg", "exang", "slope", "thal"]
 
-# replace missing data in numerical with the median
-for col in numerical_cols:
-        data[col].fillna(data[col].median())
-    
-# replace missing data in categorical with most frequent
-for col in categorical_cols:
-        data[col].fillna(data[col].mode()[0])
+    # replace missing data in numerical with the median of the column
+    for col in numerical_cols:
+        df[col] = df[col].fillna(df[col].median())
+        
+    # replace missing data in categorical with most frequent
+    for col in categorical_cols:
+        df[col] = df[col].fillna(df[col].mode()[0])
+
+    # map male, female to 1 and 0
+    df["sex"] = df["sex"].map({"Male": 1, "Female": 0})
+    # map true and false to 1 and 0
+    df["fbs"] = df["fbs"].map({True: 1, False: 0})
+    df["exang"] = df["exang"].map({True: 1, False: 0})
+
+    # one hot encoding
+    encoding_cols = ["cp", "restecg", "slope", "thal"]
+    df = pd.get_dummies(df, columns=encoding_cols, drop_first=True)
+
+    return df
+
+data = preprocess_data(data)
+print(data.head())
+print(data.iloc[0])
