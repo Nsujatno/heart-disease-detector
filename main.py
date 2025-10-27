@@ -30,6 +30,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 # create dataframe
@@ -88,8 +89,15 @@ X_test = scaler.transform(X_test)
 model = LogisticRegression(random_state=42)
 model.fit(X_train, y_train)
 
+model_rf = RandomForestClassifier(random_state=42)
+model_rf.fit(X_train, y_train)
+
 # evaluate
 prediction = model.predict(X_test)
 accuracy = accuracy_score(y_test, prediction)
 
-print(f'Accuracy: {accuracy}')
+prediction_rf = model_rf.predict(X_test)
+accuracy_rf = accuracy_score(y_test, prediction_rf)
+
+print(f'Accuracy of logistic regression: {accuracy}')
+print(f'Accuracy of random forest classifier {accuracy_rf}')
