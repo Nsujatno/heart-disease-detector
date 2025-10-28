@@ -27,11 +27,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
+
+# random int for our hyper parameter tuning
+from scipy.stats import randint
 
 # create dataframe
 data = pd.read_csv("heart_disease_uci.csv")
@@ -90,7 +93,24 @@ model = LogisticRegression(random_state=42)
 model.fit(X_train, y_train)
 
 model_rf = RandomForestClassifier(random_state=42)
+param_dist_rf = {
+    'n_estimators': randint(100, 1000), # num of decision trees in the forest
+    'max_depth': [None, 10, 20, 30, 40, 50], # num of "questions" each tree is allowed to have, none means that it can grow as deep as it wants
+    'min_samples_leaf': randint(1, 10), # min num of data points allowed to be in final leaf
+    'max_features': ['sqrt', 'log2'], # the num of features to consider when looking for best split
+    'bootstrap': [True, False] # Whether bootstrap samples are used when building trees. If False, the whole dataset is used to build each tree.
+}
+search = RandomizedSearchCV(estimator=model_rf,
+                            param_distributions=param_dist_rf,
+                            n_iter=100,
+                            scoring='accuracy',
+                            n_jobs=-1,
+                            random_state=42)
 model_rf.fit(X_train, y_train)
+search.fit(X_train, y_train)
+# gets the best model and the best parameters
+best_model = search.best_estimator_
+best_params_ = search.best_params_
 
 # evaluate
 prediction = model.predict(X_test)
@@ -99,5 +119,9 @@ accuracy = accuracy_score(y_test, prediction)
 prediction_rf = model_rf.predict(X_test)
 accuracy_rf = accuracy_score(y_test, prediction_rf)
 
+prediction_best_rf = best_model.predict(X_test)
+accuracy_best_rf = accuracy_score(y_test, prediction_best_rf)
+
 print(f'Accuracy of logistic regression: {accuracy}')
 print(f'Accuracy of random forest classifier {accuracy_rf}')
+print(f'Accuracy of best random forest classifier using randomized search cv and hyperparameter tuning {accuracy_best_rf}')
