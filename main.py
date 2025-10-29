@@ -30,11 +30,11 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 # random int for our hyper parameter tuning
-from scipy.stats import randint
+from scipy.stats import randint, loguniform
 
 # create dataframe
 data = pd.read_csv("heart_disease_uci.csv")
@@ -92,10 +92,12 @@ X_test = scaler.transform(X_test)
 model = LogisticRegression(random_state=42)
 model.fit(X_train, y_train)
 
+# train the random forest model
 model_rf = RandomForestClassifier(random_state=42)
 param_dist_rf = {
     'n_estimators': randint(100, 1000), # num of decision trees in the forest
     'max_depth': [None, 10, 20, 30, 40, 50], # num of "questions" each tree is allowed to have, none means that it can grow as deep as it wants
+    'min_samples_split': randint(2, 15),
     'min_samples_leaf': randint(1, 10), # min num of data points allowed to be in final leaf
     'max_features': ['sqrt', 'log2'], # the num of features to consider when looking for best split
     'bootstrap': [True, False] # Whether bootstrap samples are used when building trees. If False, the whole dataset is used to build each tree.
@@ -112,6 +114,23 @@ search.fit(X_train, y_train)
 best_model = search.best_estimator_
 best_params_ = search.best_params_
 
+# train the gradient boost model
+model_gbm = GradientBoostingClassifier(random_state=42)
+param_gbm = {
+    'n_estimators': randint(100, 1000),
+    'learning_rate': loguniform(0.005, 0.3),
+    'max_depth': randint(3,10)
+}
+search_gbm = RandomizedSearchCV(estimator=model_gbm,
+                                param_distributions=param_gbm,
+                                n_iter=50,
+                                n_jobs=-1,
+                                random_state=42)
+model_gbm.fit(X_train, y_train)
+search_gbm.fit(X_train, y_train)
+best_model_gbm = search_gbm.best_estimator_
+
+
 # evaluate
 prediction = model.predict(X_test)
 accuracy = accuracy_score(y_test, prediction)
@@ -122,6 +141,14 @@ accuracy_rf = accuracy_score(y_test, prediction_rf)
 prediction_best_rf = best_model.predict(X_test)
 accuracy_best_rf = accuracy_score(y_test, prediction_best_rf)
 
+prediction_gbm = model_gbm.predict(X_test)
+accuracy_gbm = accuracy_score(y_test, prediction_gbm)
+
+prediction_best_gbm = best_model_gbm.predict(X_test)
+accuracy_best_gbm = accuracy_score(y_test, prediction_best_gbm)
+
 print(f'Accuracy of logistic regression: {accuracy}')
 print(f'Accuracy of random forest classifier {accuracy_rf}')
 print(f'Accuracy of best random forest classifier using randomized search cv and hyperparameter tuning {accuracy_best_rf}')
+print(f'Accuracy of gbm: {accuracy_gbm}')
+print(f'Accuracy of best gbm {accuracy_best_gbm}')
